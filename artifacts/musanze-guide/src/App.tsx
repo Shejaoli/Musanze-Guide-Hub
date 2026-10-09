@@ -61,6 +61,7 @@ const between = (value: number, start: number, end: number) => smooth((value - s
 function App() {
   const stageRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const cursorLensRef = useRef<HTMLDivElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSight, setActiveSight] = useState(0);
   const activeSightRef = useRef(0);
@@ -77,6 +78,11 @@ function App() {
     let mouseY = 0;
     let targetMouseX = 0;
     let targetMouseY = 0;
+    let lensX = 0;
+    let lensY = 0;
+    let targetLensX = 0;
+    let targetLensY = 0;
+    let hasPointer = false;
     const tick = () => {
       const distance = Math.max(0, stage.offsetHeight - window.innerHeight);
       const targetScroll = clamp(-stage.getBoundingClientRect().top, 0, distance);
@@ -90,6 +96,8 @@ function App() {
       } else {
         mouseX += (targetMouseX - mouseX) * 0.1;
         mouseY += (targetMouseY - mouseY) * 0.1;
+        lensX += (targetLensX - lensX) * 0.2;
+        lensY += (targetLensY - lensY) * 0.2;
       }
       const progress = distance ? clamp(scroll / distance) : 0;
       const introExit = between(scroll, 80, 650);
@@ -117,6 +125,8 @@ function App() {
       set('--scene-x', `${mouseX * -14}px`);
       set('--perspective-x', `${50 + mouseX * 9}%`);
       set('--perspective-y', `${45 + mouseY * 7}%`);
+      set('--cursor-x', `${lensX}px`);
+      set('--cursor-y', `${lensY}px`);
       set('--parallax-city-x', `${mouseX * 7}px`);
       set('--parallax-city-y', `${mouseY * 3.5}px`);
       set('--city-base-opacity', cityReveal * (1 - split));
@@ -146,26 +156,57 @@ function App() {
       set('--frame-scale', 1 + split * 0.2);
       set('--slider-visibility', sliderReveal > 0.01 ? 'visible' : 'hidden');
       const scrollSettling = Math.abs(targetScroll - smoothScroll) > 0.6;
-      const pointerSettling = Math.abs(targetMouseX - mouseX) > 0.001 || Math.abs(targetMouseY - mouseY) > 0.001;
+      const pointerSettling =
+        Math.abs(targetMouseX - mouseX) > 0.001 ||
+        Math.abs(targetMouseY - mouseY) > 0.001 ||
+        (hasPointer && (Math.abs(targetLensX - lensX) > 0.35 || Math.abs(targetLensY - lensY) > 0.35));
       if ((scrollSettling || pointerSettling) && !reduce.matches) raf = requestAnimationFrame(tick);
     };
     const requestTick = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); };
     const pointer = (event: PointerEvent) => {
-      if (reduce.matches) return;
+      if (reduce.matches || event.pointerType === 'touch') return;
       targetMouseX = event.clientX / window.innerWidth - 0.5;
       targetMouseY = event.clientY / window.innerHeight - 0.5;
+      targetLensX = event.clientX;
+      targetLensY = event.clientY;
+      if (!hasPointer) {
+        hasPointer = true;
+        lensX = event.clientX;
+        lensY = event.clientY;
+        root.style.setProperty('--cursor-lens-visible', '1');
+      }
       requestTick();
+    };
+    const pointerExit = (event: PointerEvent) => {
+      if (event.relatedTarget === null) {
+        root.style.setProperty('--cursor-lens-visible', '0');
+        root.style.setProperty('--cursor-lens-scale', '1');
+      }
+    };
+    const pointerOver = (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return;
+      const target = event.target;
+      const interactive = target instanceof Element && target.closest('a, button, input, select, textarea, [role="button"]');
+      root.style.setProperty('--cursor-lens-scale', interactive ? '1.16' : '1');
     };
     window.addEventListener('scroll', requestTick, { passive: true });
     window.addEventListener('resize', requestTick);
     window.addEventListener('pointermove', pointer, { passive: true });
+    window.addEventListener('pointerout', pointerExit);
+    document.addEventListener('pointerover', pointerOver);
     requestTick();
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('scroll', requestTick);
       window.removeEventListener('resize', requestTick);
       window.removeEventListener('pointermove', pointer);
+      window.removeEventListener('pointerout', pointerExit);
+      document.removeEventListener('pointerover', pointerOver);
       root.style.removeProperty('--scroll');
+      root.style.removeProperty('--cursor-x');
+      root.style.removeProperty('--cursor-y');
+      root.style.removeProperty('--cursor-lens-visible');
+      root.style.removeProperty('--cursor-lens-scale');
     };
   }, []);
 
@@ -216,6 +257,7 @@ function App() {
   const heroStyle = { '--hero-image': `url(${mountain})`, '--city-image': `url(${downtown})`, '--night-image': `url(${nightView})`, '--culture-image': `url(${downtownFour})` } as CSSProperties;
 
   return (
+    <>
     <main className="site" style={heroStyle}>
       <section ref={stageRef} className="cinema-scroll" id="journey" aria-label="A moving journey through Musanze">
         <div className="stage">
@@ -392,6 +434,8 @@ function App() {
         <div className="footer-bottom"><span>© 2026 MusanzeGuide24/7 · Rwanda · All rights reserved.</span><span>Your Gateway to Musanze and Beyond</span><a href="#journey" data-testid="link-back-to-top">Back to the beginning ↑</a></div>
       </footer>
     </main>
+    <div ref={cursorLensRef} className="cursor-lens" aria-hidden="true" />
+    </>
   );
 }
 
