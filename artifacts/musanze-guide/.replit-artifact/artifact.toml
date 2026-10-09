@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "MusanzeGuide24/7"
+description = "A visual local guide to Musanze, Rwanda, helping visitors explore the city, find places to stay and eat, discover local culture and services, and plan experiences around the volcanoes."
+version = "1.0.0"
+id = "artifacts/musanze-guide"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23758
+
+[services.development]
+run = "pnpm --filter @workspace/musanze-guide run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/musanze-guide", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/musanze-guide/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23758"
+BASE_PATH = "/"
