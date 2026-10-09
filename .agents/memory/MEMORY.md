@@ -1,0 +1,1 @@
+- [MusanzeGuide storytelling](musanze-guide-storytelling.md) — prioritize sustained, scroll-driven cinematic motion over a static editorial homepage.

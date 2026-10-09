@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowRight, ChevronDown, Menu, X } from 'lucide-react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { ArrowDown, ArrowLeft, ArrowRight, Menu, X } from 'lucide-react';
 import logo from '@assets/musanzeguide24-brand-v152_1791550370194.png';
 import qrCode from '@assets/musanzeguide24-qr_1791550370195.png';
 import mountain from '@assets/01_HomePage__landscape1_1791550370183.jpg';
@@ -15,6 +15,7 @@ import nightClock from '@assets/home-night-clock_1791550370193.jpg';
 import school from '@assets/06_Schools_Universities__IPRC0_1791550370189.jpg';
 import hospital from '@assets/07_Hopitals_Clinics-Pharmacies__Musanze-Hosp1_1791550370189.jpg';
 import homeProperty from '@assets/12_Houses_Rentals__HouseRent1_1791550370190.jpg';
+import gorillaOne from '@assets/gorilla-user-1_1791550370191.jpg';
 
 const links = {
   things: 'https://musanzeguide.com/attractions.html',
@@ -30,273 +31,300 @@ const links = {
   property: 'https://musanzeguide.com/property.html',
 };
 
-type MenuKey = 'explore' | 'stay' | 'local';
-type PanelMotion = { menu: MenuKey; direction: 'left' | 'right' };
+const sliderItems = [
+  { eyebrow: '01 / THE VOLCANOES', title: 'Volcano country', text: 'Clouds gather around the Virunga peaks above Musanze.', image: volcano, href: links.things, alt: 'Clouds wrap the volcanic slopes above Musanze' },
+  { eyebrow: '02 / A CITY IN MOTION', title: 'Musanze town', text: 'Markets, busy streets and a northern city with its own rhythm.', image: cityCenter, href: links.shopping, alt: 'Elevated view over the streets and rooftops of Musanze' },
+  { eyebrow: '03 / A PLACE TO PAUSE', title: 'Eat & meet', text: 'Restaurants, cafés and evenings that stretch a little longer.', image: cafe, href: links.eat, alt: 'Migano café and the street outside in Musanze' },
+  { eyebrow: '04 / THE GREEN EDGE', title: 'Forest encounters', text: 'Find local information for experiences in the wider region.', image: gorillaOne, href: links.things, alt: 'Mountain gorilla resting among forest leaves' },
+  { eyebrow: '05 / AFTER SUNSET', title: 'Night view', text: 'City lights, familiar landmarks and volcano silhouettes.', image: nightClock, href: links.night, alt: 'Illuminated clock tower on a Musanze street at night' },
+];
 
-const menuPanels: Record<MenuKey, { width: number; height: number }> = {
-  explore: { width: 664, height: 358 },
-  stay: { width: 446, height: 308 },
-  local: { width: 232, height: 218 },
-};
-
-function ArrowLink({ href, children, className = '' }: { href: string; children: ReactNode; className?: string }) {
-  return <a className={`text-link ${className}`} href={href}>{children}<ArrowRight aria-hidden="true" /></a>;
-}
+const clamp = (n: number, min = 0, max = 1) => Math.min(max, Math.max(min, n));
+const smooth = (n: number) => { const x = clamp(n); return x * x * (3 - 2 * x); };
+const between = (value: number, start: number, end: number) => smooth((value - start) / (end - start));
 
 function App() {
-  const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
+  const stageRef = useRef<HTMLElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [preview, setPreview] = useState(0);
-  const [departingPanel, setDepartingPanel] = useState<PanelMotion | null>(null);
-  const [incomingPanel, setIncomingPanel] = useState<PanelMotion | null>(null);
-  const [firstOpen, setFirstOpen] = useState(false);
-  const hasOpenedMenu = useRef(false);
-  const navRef = useRef<HTMLElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const closeTimer = useRef<number | undefined>(undefined);
-  const triggerRefs = useRef<Record<MenuKey, HTMLButtonElement | null>>({ explore: null, stay: null, local: null });
-  const [panelStyle, setPanelStyle] = useState({ x: 0, width: 664, height: 358 });
-  const menuOrder: MenuKey[] = ['explore', 'stay', 'local'];
-
-  const placePanel = (menu: MenuKey) => {
-    const button = triggerRefs.current[menu];
-    const nav = navRef.current;
-    if (!button || !nav) return;
-    const panel = menuPanels[menu];
-    const navRect = nav.getBoundingClientRect();
-    const triggerRect = button.getBoundingClientRect();
-    const x = Math.max(12, Math.min(triggerRect.left - navRect.left - 20, navRect.width - panel.width - 12));
-    setPanelStyle({ x, width: panel.width, height: panel.height });
-  };
-
-  const openMenu = (menu: MenuKey) => {
-    window.clearTimeout(closeTimer.current);
-    if (activeMenu === menu) return;
-    if (activeMenu) {
-      const direction = menuOrder.indexOf(menu) > menuOrder.indexOf(activeMenu) ? 'right' : 'left';
-      setDepartingPanel({ menu: activeMenu, direction: direction === 'right' ? 'left' : 'right' });
-      setIncomingPanel({ menu, direction });
-      window.requestAnimationFrame(() => {
-        setIncomingPanel((current) => current?.menu === menu ? null : current);
-      });
-    } else {
-      setDepartingPanel(null);
-      setIncomingPanel(null);
-      if (!hasOpenedMenu.current) {
-        hasOpenedMenu.current = true;
-        setFirstOpen(true);
-        window.requestAnimationFrame(() => setFirstOpen(false));
-      }
-    }
-    placePanel(menu);
-    setActiveMenu(menu);
-  };
-  const closeMenu = (delay = 140) => {
-    window.clearTimeout(closeTimer.current);
-    closeTimer.current = window.setTimeout(() => {
-      setActiveMenu(null);
-      setDepartingPanel(null);
-      setIncomingPanel(null);
-      setFirstOpen(false);
-    }, delay);
-  };
-  const panelState = (menu: MenuKey) => {
-    if (activeMenu === menu) {
-      if (firstOpen) return undefined;
-      return incomingPanel?.menu === menu ? `enter-${incomingPanel.direction}` : 'active';
-    }
-    return departingPanel?.menu === menu ? `exit-${departingPanel.direction}` : undefined;
-  };
+  const [activeSight, setActiveSight] = useState(0);
+  const activeSightRef = useRef(0);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const onResize = () => { if (activeMenu) placePanel(activeMenu); };
-    const onPointerDown = (event: PointerEvent) => {
-      if (navRef.current && !navRef.current.contains(event.target as Node)) setActiveMenu(null);
+    const stage = stageRef.current;
+    if (!stage) return;
+    const root = document.documentElement;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let raf = 0;
+    let smoothScroll = 0;
+    let mouseX = 0;
+    let mouseY = 0;
+    let targetMouseX = 0;
+    let targetMouseY = 0;
+    const tick = () => {
+      const distance = Math.max(0, stage.offsetHeight - window.innerHeight);
+      const targetScroll = clamp(-stage.getBoundingClientRect().top, 0, distance);
+      const scroll = reduce.matches ? targetScroll : (smoothScroll += (targetScroll - smoothScroll) * 0.13);
+      if (reduce.matches) smoothScroll = targetScroll;
+      if (reduce.matches) {
+        mouseX = 0;
+        mouseY = 0;
+        targetMouseX = 0;
+        targetMouseY = 0;
+      } else {
+        mouseX += (targetMouseX - mouseX) * 0.1;
+        mouseY += (targetMouseY - mouseY) * 0.1;
+      }
+      const progress = distance ? clamp(scroll / distance) : 0;
+      const introExit = between(scroll, 80, 650);
+      const cityReveal = between(scroll, 650, 1150);
+      const nightReveal = between(scroll, 1550, 2100);
+      const cultureReveal = between(scroll, 2650, 3200);
+      const sliderReveal = between(scroll, 3650, 4250);
+      const split = Math.pow(between(scroll, 880, 1500), 1.4);
+      const set = (name: string, value: string | number) => root.style.setProperty(name, String(value));
+      set('--scroll', progress);
+      set('--intro-exit', introExit);
+      set('--city-reveal', cityReveal);
+      set('--night-reveal', nightReveal);
+      set('--culture-reveal', cultureReveal);
+      set('--slider-reveal', sliderReveal);
+      set('--split', split);
+      set('--hero-scale', 1 + progress * 0.22);
+      set('--scene-y', `${progress * -72 + mouseY * 7}px`);
+      set('--scene-x', `${mouseX * -14}px`);
+      set('--perspective-x', `${50 + mouseX * 9}%`);
+      set('--perspective-y', `${45 + mouseY * 7}%`);
+      set('--parallax-city-x', `${mouseX * 7}px`);
+      set('--parallax-city-y', `${mouseY * 3.5}px`);
+      set('--city-base-opacity', cityReveal * (1 - split));
+      set('--city-scale', 1.08 - cityReveal * 0.08 + progress * 0.06);
+      set('--city-clip-top', `${split * 7}%`);
+      set('--city-clip-side', `${split * 2}%`);
+      set('--city-clip-bottom', `${split * 4}%`);
+      set('--night-scale', 1.08 - nightReveal * 0.08);
+      set('--culture-scale', 1.1 - cultureReveal * 0.1);
+      set('--title-y', `${introExit * -160}px`);
+      set('--title-scale', 1 - introExit * 0.07);
+      set('--intro-copy-y', `${introExit * 80}px`);
+      set('--story-shift', `${(1 - cityReveal) * 42}px`);
+      set('--city-story-opacity', cityReveal * (1 - nightReveal));
+      set('--night-story-opacity', nightReveal * (1 - cultureReveal));
+      set('--culture-story-opacity', cultureReveal * (1 - sliderReveal));
+      set('--track-shift', `${(1 - sliderReveal) * 100}vw`);
+      set('--ridge-back-y', `${progress * -5}vh`);
+      set('--ridge-front-y', `${progress * -3}vh`);
+      set('--frame-left-x', `${-split * 42}vw`);
+      set('--frame-right-x', `${split * 42}vw`);
+      set('--frame-y', `${split * -6}vh`);
+      set('--frame-scale', 1 + split * 0.2);
+      set('--slider-visibility', sliderReveal > 0.01 ? 'visible' : 'hidden');
+      const scrollSettling = Math.abs(targetScroll - smoothScroll) > 0.6;
+      const pointerSettling = Math.abs(targetMouseX - mouseX) > 0.001 || Math.abs(targetMouseY - mouseY) > 0.001;
+      if ((scrollSettling || pointerSettling) && !reduce.matches) raf = requestAnimationFrame(tick);
     };
+    const requestTick = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); };
+    const pointer = (event: PointerEvent) => {
+      if (reduce.matches) return;
+      targetMouseX = event.clientX / window.innerWidth - 0.5;
+      targetMouseY = event.clientY / window.innerHeight - 0.5;
+      requestTick();
+    };
+    window.addEventListener('scroll', requestTick, { passive: true });
+    window.addEventListener('resize', requestTick);
+    window.addEventListener('pointermove', pointer, { passive: true });
+    requestTick();
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', requestTick);
+      window.removeEventListener('resize', requestTick);
+      window.removeEventListener('pointermove', pointer);
+      root.style.removeProperty('--scroll');
+    };
+  }, []);
+
+  const selectSight = (index: number) => {
+    activeSightRef.current = index;
+    setActiveSight(index);
+  };
+  const moveSlider = (direction: number) => {
+    const next = (activeSightRef.current + direction + sliderItems.length) % sliderItems.length;
+    selectSight(next);
+    const track = trackRef.current;
+    const card = track?.querySelector<HTMLElement>(`[data-sight="${next}"]`);
+    if (track && card) {
+      track.scrollTo({
+        left: card.offsetLeft - track.offsetLeft,
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      });
+    }
+  };
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (mobileOpen) {
-          setMobileOpen(false);
-          document.getElementById('mobile-menu-button')?.focus();
-        }
-        if (activeMenu) {
-          const previous = activeMenu;
-          setActiveMenu(null);
-          setDepartingPanel(null);
-          setIncomingPanel(null);
-          setFirstOpen(false);
-          triggerRefs.current[previous]?.focus();
-        }
+      if (event.key === 'Escape' && mobileOpen) {
+        setMobileOpen(false);
+        menuButtonRef.current?.focus();
       }
     };
-    window.addEventListener('resize', onResize);
-    document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('resize', onResize);
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-      window.clearTimeout(closeTimer.current);
-    };
-  }, [activeMenu, mobileOpen]);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [mobileOpen]);
+  const syncSliderToSwipe = () => {
+    const track = trackRef.current;
+    if (!track) return;
+    const cards = Array.from(track.querySelectorAll<HTMLElement>('[data-sight]'));
+    let nearest = activeSightRef.current;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    cards.forEach((card, index) => {
+      const distance = Math.abs(card.offsetLeft - track.offsetLeft - track.scrollLeft);
+      if (distance < nearestDistance) { nearestDistance = distance; nearest = index; }
+    });
+    if (nearest !== activeSightRef.current) selectSight(nearest);
+  };
 
-  const setTrigger = (menu: MenuKey) => (element: HTMLButtonElement | null) => { triggerRefs.current[menu] = element; };
-  const images = [volcano, downtown, centralMall, tower];
+  const mobileLinks = [
+    ['Explore', links.things], ['Stay', links.stay], ['Eat & Drink', links.eat], ['Getting Around', links.move],
+    ['Shopping', links.shopping], ['Souvenirs', links.souvenirs], ['History & Culture', links.culture],
+    ['Musanze Night View', links.night], ['Education', links.education], ['Health', links.health], ['Property', links.property],
+  ];
+  const heroStyle = { '--hero-image': `url(${mountain})`, '--city-image': `url(${downtown})`, '--night-image': `url(${nightView})`, '--culture-image': `url(${downtownFour})` } as CSSProperties;
 
   return (
-    <main className="site">
-      <section className="hero" aria-label="Musanze, Rwanda">
-        <div className="hero-bg" role="img" aria-label="Clouds drift across the green slopes of a volcano above Musanze" style={{ backgroundImage: `url(${mountain})` }} />
-        <header className="header" id="header">
-          <div className="bar">
-            <a className="brand-link" href="/" aria-label="MusanzeGuide Rwanda home">
-              <img src={logo} alt="MusanzeGuide 24/7 — Explore, Stay, Discover, Connect" />
-            </a>
-            <nav className="desktop-nav" ref={navRef} aria-label="Main navigation" onPointerEnter={() => window.clearTimeout(closeTimer.current)} onPointerLeave={(event) => { if (event.pointerType === 'mouse') closeMenu(); }} onFocusCapture={() => window.clearTimeout(closeTimer.current)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) closeMenu(0); }}>
-              <ul className="nav-list">
-                <li><button ref={setTrigger('explore')} className="trigger" aria-expanded={activeMenu === 'explore'} aria-controls="nav-dropdown" onPointerEnter={(event) => { if (event.pointerType === 'mouse') openMenu('explore'); }} onClick={() => activeMenu === 'explore' ? closeMenu(0) : openMenu('explore')}>Explore <ChevronDown className="chevron" /></button></li>
-                <li><button ref={setTrigger('stay')} className="trigger" aria-expanded={activeMenu === 'stay'} aria-controls="nav-dropdown" onPointerEnter={(event) => { if (event.pointerType === 'mouse') openMenu('stay'); }} onClick={() => activeMenu === 'stay' ? closeMenu(0) : openMenu('stay')}>Stay & eat <ChevronDown className="chevron" /></button></li>
-                <li><button ref={setTrigger('local')} className="trigger" aria-expanded={activeMenu === 'local'} aria-controls="nav-dropdown" onPointerEnter={(event) => { if (event.pointerType === 'mouse') openMenu('local'); }} onClick={() => activeMenu === 'local' ? closeMenu(0) : openMenu('local')}>Local guide <ChevronDown className="chevron" /></button></li>
-                <li><a className="plain-link" href="#footer" onClick={() => closeMenu(0)}>Our story</a></li>
-              </ul>
-              <div ref={dropdownRef} id="nav-dropdown" className={`dd ${activeMenu ? 'open' : ''} ${firstOpen ? 'instant snap' : ''}`} aria-label="Navigation links" style={{ '--x': `${panelStyle.x}px`, '--w': `${panelStyle.width}px`, '--h': `${panelStyle.height}px` } as CSSProperties}>
-                <div className={`menu-panel discover-panel ${firstOpen ? 'snap' : ''}`} data-state={panelState('explore')}>
-                  <div className="d-list">
-                    {[
-                      ['Things to do', 'Volcanoes, hikes and caves.', links.things],
-                      ['Musanze Night View', 'City lights after sunset.', links.night],
-                      ['History & Culture', 'Heritage and daily life.', links.culture],
-                      ['Souvenirs', 'Take a little Musanze home.', links.souvenirs],
-                    ].map(([title, sub, href], index) => <a key={title} href={href} className={`d-item ${preview === index ? 'is-active' : ''}`} onPointerEnter={() => setPreview(index)} onFocus={() => setPreview(index)}><strong>{title}</strong><span>{sub}</span></a>)}
-                  </div>
-                  <div className="d-media" aria-hidden="true">{images.map((image, index) => <img key={image} className={preview === index ? 'is-active' : ''} src={image} alt="" />)}</div>
-                </div>
-                <div className={`menu-panel journeys-panel ${firstOpen ? 'snap' : ''}`} data-state={panelState('stay')}>
-                  <a className="journey-card" href={links.stay}><img src={homeProperty} alt="" /><strong>Places to stay</strong><span>Hotels & guesthouses</span></a>
-                  <a className="journey-card" href={links.eat}><img src={cafe} alt="" /><strong>Eat & drink</strong><span>Restaurants & cafés</span></a>
-                </div>
-                <div className={`menu-panel resource-panel ${firstOpen ? 'snap' : ''}`} data-state={panelState('local')}>
-                  <a href={links.move}>Getting Around</a><a href={links.shopping}>Shopping & local life</a><a href={links.education}>Education</a><a href={links.health}>Health</a><a href={links.property}>Property & neighbourhoods</a>
-                </div>
-              </div>
+    <main className="site" style={heroStyle}>
+      <section ref={stageRef} className="cinema-scroll" id="journey" aria-label="A moving journey through Musanze">
+        <div className="stage">
+          <div className="world" aria-hidden="true">
+            <div className="scene sky" />
+            <div className="scene city-scene" />
+            <div className="scene night-scene" />
+            <div className="scene culture-scene" />
+            <div className="horizon-glow" />
+            <div className="ridge ridge-back" />
+            <div className="ridge ridge-front" />
+            <div className="scene-frame frame-left" />
+            <div className="scene-frame frame-right" />
+            <div className="grain" />
+            <div className="shade" />
+          </div>
+          <header className="header">
+            <a className="brand-link" href="/" aria-label="MusanzeGuide24/7 home" data-testid="link-home"><img src={logo} alt="MusanzeGuide24/7 — Explore, Stay, Discover, Connect" /></a>
+            <nav className="desktop-nav" aria-label="Main navigation">
+              <a href={links.things} data-testid="link-explore">Explore</a><a href={links.stay} data-testid="link-stay">Stay</a><a href={links.eat} data-testid="link-eat-drink">Eat & Drink</a><a href="#local-guide" data-testid="link-local-guide">Local guide</a>
             </nav>
-            <div className="actions">
-              <a href={links.stay} className="cta">Plan your stay</a>
-              <button id="mobile-menu-button" className="menu-btn" aria-label={mobileOpen ? 'Close menu' : 'Open menu'} aria-expanded={mobileOpen} aria-controls="mobile-sheet" onClick={() => setMobileOpen((open) => !open)}>{mobileOpen ? <X size={17} /> : <Menu size={18} />}</button>
+            <div className="header-actions"><a className="header-cta" href={links.stay} data-testid="link-plan-your-stay">Plan your stay <ArrowRight aria-hidden="true" size={15} /></a>
+              <button ref={menuButtonRef} className="menu-btn" data-testid="button-toggle-navigation" aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileOpen} aria-controls="mobile-sheet" onClick={() => setMobileOpen((open) => !open)}>{mobileOpen ? <X size={18} /> : <Menu size={18} />}</button>
+            </div>
+            <nav className={`mobile-sheet ${mobileOpen ? 'is-open' : ''}`} id="mobile-sheet" aria-label="Mobile navigation" aria-hidden={!mobileOpen}>
+              {mobileLinks.map(([label, href]) => <a key={label} href={href} data-testid={`link-mobile-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`} onClick={() => setMobileOpen(false)}>{label}<ArrowRight size={15} aria-hidden="true" /></a>)}
+            </nav>
+          </header>
+          <div className="scene-index"><span>RWANDA</span><i /> <span>NORTHERN PROVINCE</span></div>
+          <div className="hero-title-wrap">
+            <span className="hero-overline">A city at the foot of the Virungas</span>
+            <h1 className="hero-title" data-testid="text-page-title">Musanze</h1>
+            <p className="hero-subtitle">The city beyond the gorillas.</p>
+          </div>
+          <div className="hero-note"><span>01 — THE LANDSCAPE</span><span>Where the road meets the volcanoes</span></div>
+          <div className="intro-copy">
+            <p>A practical independent guide to a northern Rwandan city shaped by volcano country—and made vivid by the people who call it home.</p>
+            <div className="hero-tags" aria-label="Musanze highlights"><span>Volcanoes</span><span>City life</span><span>Community</span></div>
+          </div>
+          <section className="story-panel city-story" aria-label="Musanze city life">
+            <span className="story-number">02 / FIND YOUR BEARINGS</span>
+            <h2>Beyond the mountain,<br /><em>the city moves.</em></h2>
+            <p>Markets, shops, busy streets and everyday life unfold beneath the Virunga skyline.</p>
+            <a href={links.shopping} className="light-link" data-testid="link-city-life">Discover the city <ArrowRight size={16} aria-hidden="true" /></a>
+          </section>
+          <section className="story-panel night-story" aria-label="Musanze after sunset">
+            <span className="story-number">03 / AFTER SUNSET · 24/7</span>
+            <h2>When the lights<br />come <em>on.</em></h2>
+            <p>Night lights. City streets. Landmarks. Volcano silhouettes. Musanze has another story after dark.</p>
+            <a href={links.night} className="light-link" data-testid="link-night-view">Explore Musanze Night View <ArrowRight size={16} aria-hidden="true" /></a>
+          </section>
+          <section className="story-panel culture-story" aria-label="Culture and local life">
+            <span className="story-number">04 / LIVING HERITAGE</span>
+            <h2>Rooted in place.<br /><em>Open to the world.</em></h2>
+            <p>Traditional architecture, dance, daily life and cultural experiences from Rwanda’s northern region.</p>
+            <a href={links.culture} className="light-link" data-testid="link-culture">History & Culture <ArrowRight size={16} aria-hidden="true" /></a>
+          </section>
+          <div className="sights-area" aria-label="Explore the region">
+            <div className="sights-heading"><span>05 / KEEP EXPLORING</span><span>SCROLL OR CHOOSE A PLACE</span></div>
+            <div className="sights-track" ref={trackRef} onScroll={syncSliderToSwipe} role="region" aria-roledescription="carousel" aria-label="Musanze highlights carousel">
+              {sliderItems.map((item, index) => <a href={item.href} className={`sight-card ${activeSight === index ? 'is-active' : ''}`} data-sight={index} data-testid={`slide-highlight-${index + 1}`} key={item.title} role="group" aria-roledescription="slide" aria-label={`${index + 1} of ${sliderItems.length}: ${item.title}. ${item.text}`} onFocus={() => selectSight(index)}>
+                <img src={item.image} alt={item.alt} />
+                <span className="sight-shade" />
+                <span className="sight-kicker">{item.eyebrow}</span>
+                <span className="sight-copy"><strong>{item.title}</strong><span>{item.text}</span></span>
+                <span className="sight-arrow" aria-hidden="true"><ArrowRight size={18} /></span>
+              </a>)}
+            </div>
+            <div className="sights-controls">
+              <button aria-label="Previous highlight" data-testid="button-previous-highlight" onClick={() => moveSlider(-1)}><ArrowLeft size={17} aria-hidden="true" /></button>
+              <span data-testid="text-highlight-counter">{String(activeSight + 1).padStart(2, '0')} <i /> {String(sliderItems.length).padStart(2, '0')}</span>
+              <button aria-label="Next highlight" data-testid="button-next-highlight" onClick={() => moveSlider(1)}><ArrowRight size={17} aria-hidden="true" /></button>
             </div>
           </div>
-          <nav id="mobile-sheet" className={`sheet ${mobileOpen ? 'open' : ''}`} aria-label="Mobile navigation" aria-hidden={!mobileOpen}>
-            <h3>Explore</h3>
-            <a href={links.things} onClick={() => setMobileOpen(false)}>Things to do</a><a href={links.night} onClick={() => setMobileOpen(false)}>Musanze Night View</a><a href={links.culture} onClick={() => setMobileOpen(false)}>History & Culture</a>
-            <h3>Stay & eat</h3>
-            <a href={links.stay} onClick={() => setMobileOpen(false)}>Stay · Hotels & guesthouses</a><a href={links.eat} onClick={() => setMobileOpen(false)}>Eat & Drink</a><a href={links.move} onClick={() => setMobileOpen(false)}>Getting Around</a>
-            <h3>Local guide</h3>
-            <a href={links.shopping} onClick={() => setMobileOpen(false)}>Shopping · Local life</a><a href={links.souvenirs} onClick={() => setMobileOpen(false)}>Souvenirs</a><a href={links.education} onClick={() => setMobileOpen(false)}>Education</a><a href={links.health} onClick={() => setMobileOpen(false)}>Health</a><a href={links.property} onClick={() => setMobileOpen(false)}>Property</a>
-            <h3>MusanzeGuide</h3>
-            <a href="#footer" onClick={() => setMobileOpen(false)}>Our story</a>
-          </nav>
-        </header>
-        <div className="scroll-cue" aria-hidden="true"><span>(</span><span>scroll down</span><span>)</span></div>
+          <div className="scroll-progress" aria-hidden="true"><span /></div>
+          <a href="#local-guide" className="scroll-indicator" data-testid="link-scroll-to-guide" aria-label="Continue to the local guide"><span>SCROLL TO TRAVEL THROUGH MUSANZE</span><ArrowDown size={14} aria-hidden="true" /></a>
+        </div>
       </section>
 
-      <nav className="quick-links" aria-label="Popular destinations">
-        <div className="quick-grid">
+      <section className="arrival-strip" aria-label="Musanze highlights">
+        <span>YOUR GATEWAY TO MUSANZE AND BEYOND</span><strong>One place.<br />Many ways in.</strong>
+        <p>Start with volcanoes and hikes. Stay for the streets, cafés, culture and useful local details.</p>
+        <a href={links.things} data-testid="link-see-things-to-do">See things to do <ArrowRight size={16} aria-hidden="true" /></a>
+      </section>
+
+      <section className="local-section" id="local-guide">
+        <div className="local-heading">
+          <div><span className="eyebrow">THE CITY BEYOND THE GORILLAS</span><h2>Find your Musanze.</h2></div>
+          <p>Volcanoes. City life. Food. Schools. Neighbourhoods. Local experiences. Start with what brought you here; find everything else along the way.</p>
+        </div>
+        <div className="destination-list">
+          <a href={links.things} data-testid="link-destination-volcanoes"><span>01</span><div><small>OUTDOORS & EXPERIENCES</small><strong>Volcano country</strong><p>Volcanoes · hikes · caves</p></div><img src={volcano} alt="Green ridges beneath a cloud-wrapped volcano near Musanze" /><ArrowRight aria-hidden="true" /></a>
+          <a href={links.shopping} data-testid="link-destination-city"><span>02</span><div><small>MARKETS & EVERYDAY LIFE</small><strong>City life</strong><p>Markets · shops · city streets</p></div><img src={centralMall} alt="Central shopping district and street life in Musanze" /><ArrowRight aria-hidden="true" /></a>
+          <a href={links.eat} data-testid="link-destination-food"><span>03</span><div><small>RESTAURANTS & CAFÉS</small><strong>Eat & meet</strong><p>Restaurants · cafés · evenings</p></div><img src={cafe} alt="Migano café on a busy Musanze street" /><ArrowRight aria-hidden="true" /></a>
+          <a href={links.stay} data-testid="link-destination-stays"><span>04</span><div><small>HOTELS & GUESTHOUSES</small><strong>Stay a while</strong><p>Places to stay in and around town</p></div><img src={homeProperty} alt="A quiet guesthouse set among greenery near Musanze" /><ArrowRight aria-hidden="true" /></a>
+        </div>
+      </section>
+
+      <section className="culture-band">
+        <div className="culture-band-image"><img src={downtownFour} alt="Everyday shops, signs and street life in Musanze" /></div>
+        <div className="culture-band-copy"><span className="eyebrow">LIVING HERITAGE</span><h2>A place is more<br />than its view.</h2><p>Traditional architecture, dance, daily life and cultural experiences from Rwanda’s northern region. Discover the people and stories that give Musanze its character.</p><a href={links.culture} data-testid="link-discover-culture">Discover History & Culture <ArrowRight size={16} aria-hidden="true" /></a></div>
+        <span className="culture-coordinate">1°29′ S &nbsp; 29°38′ E</span>
+      </section>
+
+      <section className="services-section">
+        <div className="services-intro"><span className="eyebrow">USEFUL LOCAL GUIDE</span><h2>Live, learn<br />and get around.</h2><p>Useful local information for visitors, residents and anyone finding their bearings in Musanze.</p><a href={links.move} data-testid="link-getting-around">Getting around <ArrowRight size={16} aria-hidden="true" /></a></div>
+        <div className="service-lines">
           {[
-            ['Explore', 'Volcanoes & experiences', links.things],
-            ['Stay', 'Hotels & guesthouses', links.stay],
-            ['Eat', 'Restaurants & cafés', links.eat],
-            ['Move', 'Transport & directions', links.move],
-          ].map(([label, text, href]) => <a className="quick-item" href={href} key={label}><span className="quick-label">{label}</span><span className="quick-name">{text}<ArrowRight aria-hidden="true" /></span></a>)}
-        </div>
-      </nav>
-
-      <section className="section" id="discover">
-        <div className="section-inner">
-          <div className="eyebrow">City · Volcanoes · Community</div>
-          <div className="intro-grid">
-            <h1 className="main-title">Discover Musanze.<br />Volcanoes. City life.<br />Culture. Food.</h1>
-            <div className="intro-aside"><p>A practical guide to the places and everyday details that make this northern Rwandan city its own. Start with the landscape; stay for the life in town.</p><ArrowLink href={links.things}>Explore Musanze</ArrowLink></div>
-          </div>
-          <div className="city-layout">
-            <a className="city-feature" href={links.things}>
-              <img src={volcano} alt="Volcanic mountain rising above the green countryside near Musanze" />
-              <div className="feature-caption"><span className="tag">The landscape around us</span><h3>Volcano country</h3><p>Volcanoes · hikes · caves</p></div>
-            </a>
-            <div className="city-secondary">
-              <a className="small-city-card" href={links.shopping}><img src={cityCenter} alt="A busy street and shops at the heart of Musanze" /><div className="feature-caption"><span className="tag">Find your way around</span><h3>City life</h3><p>Markets · shops · city streets</p></div></a>
-              <a className="small-city-card" href={links.eat}><img src={cafe} alt="Migano café and street life in Musanze" /><div className="feature-caption"><span className="tag">A seat at the table</span><h3>Eat & meet</h3><p>Restaurants · cafés · evenings</p></div></a>
-            </div>
-          </div>
+            ['01', 'Getting around', 'Transport · directions', tower, links.move, 'A landmark building and street scene in central Musanze'],
+            ['02', 'Education', 'Primary · secondary · university', school, links.education, 'Campus buildings at a higher-learning institute in Musanze'],
+            ['03', 'Health & services', 'Clinics · pharmacies · services', hospital, links.health, 'Ruhengeri Level Two Teaching Hospital in Musanze'],
+            ['04', 'Property & neighbourhoods', 'Homes · rentals · neighbourhoods', homeProperty, links.property, 'A residential property in a leafy neighbourhood'],
+          ].map(([number, title, summary, image, href, alt]) => <a href={href} className="service-line" data-testid={`link-service-${String(number).padStart(2, '0')}`} key={number}>
+            <span>{number}</span><span className="service-thumb"><img src={image} alt={alt} /></span><span className="service-name"><strong>{title}</strong><small>{summary}</small></span><ArrowRight size={18} aria-hidden="true" />
+          </a>)}
         </div>
       </section>
 
-      <section className="night-section" aria-labelledby="night-title" style={{ '--night-image': `url(${nightView})` } as CSSProperties}>
-        <img className="night-detail" src={nightClock} alt="" aria-hidden="true" />
-        <div className="night-content">
-          <div className="eyebrow">After sunset · 24/7</div>
-          <h2 className="night-title" id="night-title">MusanzeGuide<br />24/7</h2>
-          <p className="night-copy">Night lights. City streets. Landmarks. Volcano silhouettes. Discover Musanze Night View.</p>
-          <a className="button-link" href={links.night}>Explore Musanze Night View <ArrowRight aria-hidden="true" /></a>
-        </div>
-      </section>
-
-      <section className="section culture-section">
-        <div className="section-inner culture-grid">
-          <div className="culture-image"><img src={downtownFour} alt="Local shops and daily street life in Musanze town" /></div>
-          <div className="culture-copy"><div className="eyebrow">Living heritage</div><h2>History &<br />Culture</h2><p>Traditional architecture, dance, daily life and cultural experiences from Rwanda’s northern region.</p><ArrowLink href={links.culture}>Discover History & Culture</ArrowLink></div>
-        </div>
-      </section>
-
-      <section className="section souvenir-section">
-        <div className="section-inner souvenir-grid">
-          <div className="souvenir-copy"><div className="eyebrow">MusanzeGuide24/7 Souvenirs</div><h2>Take Musanze<br />home.</h2><p>Explore our growing collection of Musanze-inspired keepsakes and branded items.</p><ArrowLink href={links.souvenirs}>Explore Souvenirs</ArrowLink></div>
-          <div className="souvenir-mark"><img src={logo} alt="MusanzeGuide24/7 official brand artwork" /></div>
-        </div>
-      </section>
-
-      <section className="section resources-section">
-        <div className="section-inner">
-          <div className="eyebrow">Useful local guide</div>
-          <div className="resource-heading"><h2>Live, learn and<br />get around.</h2><p>Useful local information for visitors, residents and anyone finding their bearings in Musanze.</p></div>
-          <div className="resource-cards">
-            {[
-              ['Education', 'Primary · secondary · university', school, links.education, 'Schools and learning'],
-              ['Health & services', 'Clinics · pharmacies · services', hospital, links.health, 'Health and everyday services'],
-              ['Property & neighbourhoods', 'Homes · rentals · neighbourhoods', homeProperty, links.property, 'Homes and neighbourhoods'],
-            ].map(([name, description, image, href, alt]) => <a className="resource-card" href={href} key={name}>
-              <div className="resource-photo"><img src={image} alt={`${alt} in Musanze`} /></div>
-              <div className="resource-card-body"><span>Useful local guide</span><h3>{name}</h3><p>{description}</p><ArrowRight aria-hidden="true" /></div>
-            </a>)}
-          </div>
-        </div>
+      <section className="souvenir-band">
+        <div><span className="eyebrow">MUSANZEGUIDE24/7 SOUVENIRS</span><h2>Take Musanze<br />home.</h2><p>Explore our growing collection of Musanze-inspired keepsakes and branded items.</p><a href={links.souvenirs} data-testid="link-explore-souvenirs">Explore souvenirs <ArrowRight size={16} aria-hidden="true" /></a></div>
+        <img src={logo} alt="MusanzeGuide24/7 official brand artwork" />
       </section>
 
       <footer className="footer" id="footer">
-        <div className="footer-inner">
-          <div className="footer-top">
-            <div className="footer-brand">
-              <a href="/" aria-label="MusanzeGuide24/7 home"><img src={logo} alt="MusanzeGuide24/7" /></a>
-              <div className="footer-kicker">EXPLORE • STAY • DISCOVER • CONNECT</div>
-              <p>A practical independent guide to Musanze, Rwanda — places, people, businesses and visitor experiences.</p>
-            </div>
-            <div>
-              <h2 className="footer-heading">Discover</h2>
-              <div className="footer-links">
-                <a href={links.things}>Things to do</a><a href={links.eat}>Eat & Drink</a>
-                <a href={links.stay}>Places to stay</a><a href={links.night}>Musanze Night View</a>
-                <a href={links.shopping}>Local life</a><a href={links.education}>Education</a>
-                <a href={links.shopping}>Shopping</a><a href={links.souvenirs}>Souvenirs</a>
-                <a href={links.health}>Health</a><a href={links.culture}>History & Culture</a>
-                <a href={links.property}>Property</a><a href={links.move}>Getting Around</a>
-              </div>
-            </div>
-            <div className="qr-side">
-              <img src={qrCode} alt="QR code for musanzeguide.com" />
-              <span>SCAN TO EXPLORE</span><p>QR code for musanzeguide.com</p><a href="https://musanzeguide.com/">musanzeguide.com</a>
-            </div>
+        <div className="footer-main">
+          <div className="footer-brand">
+            <a href="/" aria-label="MusanzeGuide24/7 home" data-testid="link-footer-home"><img src={logo} alt="MusanzeGuide24/7" /></a>
+            <span>EXPLORE · STAY · DISCOVER · CONNECT</span>
+            <p>A practical independent guide to Musanze, Rwanda — places, people, businesses and visitor experiences.</p>
           </div>
-          <div className="footer-bottom"><span>© 2026 MusanzeGuide24/7 · Rwanda · All rights reserved.</span><strong>Your Gateway to Musanze and Beyond</strong></div>
+          <div className="footer-links"><span>FIND YOUR WAY</span><div>{[['Things to do', links.things], ['Eat & Drink', links.eat], ['Places to stay', links.stay], ['Musanze Night View', links.night], ['Local life', links.shopping], ['Education', links.education], ['Souvenirs', links.souvenirs], ['Health', links.health], ['History & Culture', links.culture], ['Property', links.property], ['Getting Around', links.move]].map(([title, href]) => <a key={title} href={href} data-testid={`link-footer-${String(title).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>{title}</a>)}</div></div>
+          <div className="qr-block"><img src={qrCode} alt="QR code linking to musanzeguide.com" /><span>SCAN TO EXPLORE</span><a href="https://musanzeguide.com/" data-testid="link-footer-site">musanzeguide.com</a></div>
         </div>
+        <div className="footer-bottom"><span>© 2026 MusanzeGuide24/7 · Rwanda · All rights reserved.</span><span>Your Gateway to Musanze and Beyond</span><a href="#journey" data-testid="link-back-to-top">Back to the beginning ↑</a></div>
       </footer>
     </main>
   );
