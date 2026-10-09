@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, Menu, X } from 'lucide-react';
 import logo from '@assets/musanzeguide24-brand-v152_1791550370194.png';
-import qrCode from '@assets/musanzeguide24-qr_1791550370195.png';
 import mountain from '@assets/01_HomePage__landscape1_1791550370183.jpg';
 import volcano from '@assets/05_Gorillas_Volcanoes_Nature__Volcanoes_1791550370187.jpg';
 import downtown from '@assets/02_Musanze_City__CityDownTown1_1791550370185.jpg';
@@ -18,17 +17,17 @@ import homeProperty from '@assets/12_Houses_Rentals__HouseRent1_1791550370190.jp
 import gorillaOne from '@assets/gorilla-user-1_1791550370191.jpg';
 
 const links = {
-  things: 'https://musanzeguide.com/attractions.html',
-  stay: 'https://musanzeguide.com/accommodation.html',
-  eat: 'https://musanzeguide.com/restaurants.html',
-  move: 'https://musanzeguide.com/transport.html',
-  shopping: 'https://musanzeguide.com/shopping.html',
-  night: 'https://musanzeguide.com/night-tour.html',
-  culture: 'https://musanzeguide.com/history-culture.html',
-  souvenirs: 'https://musanzeguide.com/souvenirs.html',
-  education: 'https://musanzeguide.com/schools.html',
-  health: 'https://musanzeguide.com/health.html',
-  property: 'https://musanzeguide.com/property.html',
+  things: '#destination-volcanoes',
+  stay: '#stay-collection',
+  eat: '#destination-food',
+  move: '#services',
+  shopping: '#destination-city',
+  night: '#image-story',
+  culture: '#culture',
+  souvenirs: '#souvenirs',
+  education: '#services',
+  health: '#services',
+  property: '#services',
 };
 
 const sliderItems = [
@@ -58,10 +57,34 @@ const clamp = (n: number, min = 0, max = 1) => Math.min(max, Math.max(min, n));
 const smooth = (n: number) => { const x = clamp(n); return x * x * (3 - 2 * x); };
 const between = (value: number, start: number, end: number) => smooth((value - start) / (end - start));
 
+function ImageStoryPhoto({ src, alt, revealSrc = src }: { src: string; alt: string; revealSrc?: string }) {
+  const revealRef = useRef<HTMLSpanElement>(null);
+  const movePatch = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'touch' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const reveal = revealRef.current;
+    if (!reveal) return;
+    reveal.style.setProperty('--patch-x', `${event.clientX - bounds.left}px`);
+    reveal.style.setProperty('--patch-y', `${event.clientY - bounds.top}px`);
+    reveal.classList.add('is-active');
+  };
+  return (
+    <div className="image-story-photo" onPointerMove={movePatch} onPointerLeave={() => revealRef.current?.classList.remove('is-active')}>
+      <img className="image-story-photo-base" src={src} alt={alt} draggable={false} />
+      <span
+        ref={revealRef}
+        className="image-story-photo-reveal"
+        aria-hidden="true"
+        style={{ '--patch-image': `url("${revealSrc}")` } as CSSProperties}
+      />
+    </div>
+  );
+}
+
 function App() {
   const stageRef = useRef<HTMLElement>(null);
+  const imageStoryRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const cursorLensRef = useRef<HTMLDivElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSight, setActiveSight] = useState(0);
   const activeSightRef = useRef(0);
@@ -78,11 +101,6 @@ function App() {
     let mouseY = 0;
     let targetMouseX = 0;
     let targetMouseY = 0;
-    let lensX = 0;
-    let lensY = 0;
-    let targetLensX = 0;
-    let targetLensY = 0;
-    let hasPointer = false;
     const tick = () => {
       const distance = Math.max(0, stage.offsetHeight - window.innerHeight);
       const targetScroll = clamp(-stage.getBoundingClientRect().top, 0, distance);
@@ -96,8 +114,6 @@ function App() {
       } else {
         mouseX += (targetMouseX - mouseX) * 0.1;
         mouseY += (targetMouseY - mouseY) * 0.1;
-        lensX += (targetLensX - lensX) * 0.2;
-        lensY += (targetLensY - lensY) * 0.2;
       }
       const progress = distance ? clamp(scroll / distance) : 0;
       const introExit = between(scroll, 80, 650);
@@ -125,8 +141,6 @@ function App() {
       set('--scene-x', `${mouseX * -14}px`);
       set('--perspective-x', `${50 + mouseX * 9}%`);
       set('--perspective-y', `${45 + mouseY * 7}%`);
-      set('--cursor-x', `${lensX}px`);
-      set('--cursor-y', `${lensY}px`);
       set('--parallax-city-x', `${mouseX * 7}px`);
       set('--parallax-city-y', `${mouseY * 3.5}px`);
       set('--city-base-opacity', cityReveal * (1 - split));
@@ -156,10 +170,7 @@ function App() {
       set('--frame-scale', 1 + split * 0.2);
       set('--slider-visibility', sliderReveal > 0.01 ? 'visible' : 'hidden');
       const scrollSettling = Math.abs(targetScroll - smoothScroll) > 0.6;
-      const pointerSettling =
-        Math.abs(targetMouseX - mouseX) > 0.001 ||
-        Math.abs(targetMouseY - mouseY) > 0.001 ||
-        (hasPointer && (Math.abs(targetLensX - lensX) > 0.35 || Math.abs(targetLensY - lensY) > 0.35));
+      const pointerSettling = Math.abs(targetMouseX - mouseX) > 0.001 || Math.abs(targetMouseY - mouseY) > 0.001;
       if ((scrollSettling || pointerSettling) && !reduce.matches) raf = requestAnimationFrame(tick);
     };
     const requestTick = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); };
@@ -167,46 +178,55 @@ function App() {
       if (reduce.matches || event.pointerType === 'touch') return;
       targetMouseX = event.clientX / window.innerWidth - 0.5;
       targetMouseY = event.clientY / window.innerHeight - 0.5;
-      targetLensX = event.clientX;
-      targetLensY = event.clientY;
-      if (!hasPointer) {
-        hasPointer = true;
-        lensX = event.clientX;
-        lensY = event.clientY;
-        root.style.setProperty('--cursor-lens-visible', '1');
-      }
       requestTick();
-    };
-    const pointerExit = (event: PointerEvent) => {
-      if (event.relatedTarget === null) {
-        root.style.setProperty('--cursor-lens-visible', '0');
-        root.style.setProperty('--cursor-lens-scale', '1');
-      }
-    };
-    const pointerOver = (event: PointerEvent) => {
-      if (event.pointerType === 'touch') return;
-      const target = event.target;
-      const interactive = target instanceof Element && target.closest('a, button, input, select, textarea, [role="button"]');
-      root.style.setProperty('--cursor-lens-scale', interactive ? '1.16' : '1');
     };
     window.addEventListener('scroll', requestTick, { passive: true });
     window.addEventListener('resize', requestTick);
     window.addEventListener('pointermove', pointer, { passive: true });
-    window.addEventListener('pointerout', pointerExit);
-    document.addEventListener('pointerover', pointerOver);
     requestTick();
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('scroll', requestTick);
       window.removeEventListener('resize', requestTick);
       window.removeEventListener('pointermove', pointer);
-      window.removeEventListener('pointerout', pointerExit);
-      document.removeEventListener('pointerover', pointerOver);
       root.style.removeProperty('--scroll');
-      root.style.removeProperty('--cursor-x');
-      root.style.removeProperty('--cursor-y');
-      root.style.removeProperty('--cursor-lens-visible');
-      root.style.removeProperty('--cursor-lens-scale');
+    };
+  }, []);
+
+  useEffect(() => {
+    const section = imageStoryRef.current;
+    const track = section?.querySelector<HTMLElement>('.image-story-track');
+    const sticky = section?.querySelector<HTMLElement>('.image-story-sticky');
+    if (!section || !track || !sticky) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (reduce.matches) {
+          section.style.removeProperty('--image-story-height');
+          section.style.setProperty('--image-story-x', '0px');
+          section.style.setProperty('--image-story-progress', '0');
+          return;
+        }
+        const travel = Math.max(0, track.scrollWidth - track.clientWidth);
+        const scrollDistance = Math.max(0, travel);
+        section.style.setProperty('--image-story-height', `${sticky.offsetHeight + scrollDistance}px`);
+        const top = section.getBoundingClientRect().top + window.scrollY;
+        const progress = scrollDistance ? clamp((window.scrollY - top) / scrollDistance) : 0;
+        section.style.setProperty('--image-story-x', `${travel * progress * -1}px`);
+        section.style.setProperty('--image-story-progress', `${progress}`);
+      });
+    };
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    reduce.addEventListener('change', update);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+      reduce.removeEventListener('change', update);
     };
   }, []);
 
@@ -278,7 +298,7 @@ function App() {
             <div className="shade" />
           </div>
           <header className="header">
-            <a className="brand-link" href="/" aria-label="MusanzeGuide24/7 home" data-testid="link-home"><img src={logo} alt="MusanzeGuide24/7 — Explore, Stay, Discover, Connect" /></a>
+            <a className="brand-link" href="#journey" aria-label="MusanzeGuide24/7 home" data-testid="link-home"><img src={logo} alt="MusanzeGuide24/7 — Explore, Stay, Discover, Connect" /></a>
             <nav className="desktop-nav" aria-label="Main navigation">
               <a href={links.things} data-testid="link-explore">Explore</a><a href={links.stay} data-testid="link-stay">Stay</a><a href={links.eat} data-testid="link-eat-drink">Eat & Drink</a><a href="#local-guide" data-testid="link-local-guide">Local guide</a>
             </nav>
@@ -306,7 +326,7 @@ function App() {
             <p>Markets, shops, busy streets and everyday life unfold beneath the Virunga skyline.</p>
             <a href={links.shopping} className="light-link" data-testid="link-city-life">Discover the city <ArrowRight size={16} aria-hidden="true" /></a>
           </section>
-          <section className="story-panel night-story" aria-label="Musanze after sunset">
+          <section className="story-panel night-story" id="night-story" aria-label="Musanze after sunset">
             <span className="story-number">03 / AFTER SUNSET · 24/7</span>
             <h2>When the lights<br />come <em>on.</em></h2>
             <p>Night lights. City streets. Landmarks. Volcano silhouettes. Musanze has another story after dark.</p>
@@ -358,20 +378,54 @@ function App() {
         <a href={links.things} data-testid="link-see-things-to-do">See things to do <ArrowRight size={16} aria-hidden="true" /></a>
       </section>
 
+      <section ref={imageStoryRef} className="image-story-section" id="image-story" aria-label="A visual story of Musanze">
+        <div className="image-story-sticky">
+          <div className="image-story-heading">
+            <span className="eyebrow">A NORTHERN RHYTHM · MUSANZE, RWANDA</span>
+            <h2>Every layer<br /><em>tells a story.</em></h2>
+            <p>From the city lights to the hands that keep its traditions moving.</p>
+            <span className="image-story-counter"><i /> SCROLL TO TRAVEL THROUGH THE STORY</span>
+          </div>
+          <div className="image-story-track">
+            <figure className="image-story-panel image-story-night">
+              <ImageStoryPhoto src={`${storyPath}image-story-night.jpg`} revealSrc={volcano} alt="Musanze city lights under the dark outline of the Virunga volcanoes" />
+              <figcaption><span>01 / AFTER DARK</span><strong>The city, still awake.</strong></figcaption>
+            </figure>
+            <figure className="image-story-panel image-story-volcano">
+              <ImageStoryPhoto src={volcano} revealSrc={`${storyPath}image-story-dancers.jpg`} alt="Clouds moving across the green volcanic slopes above Musanze" />
+              <figcaption><span>02 / VOLCANO COUNTRY</span><strong>A landscape that stays with you.</strong></figcaption>
+            </figure>
+            <figure className="image-story-panel image-story-dancers">
+              <ImageStoryPhoto src={`${storyPath}image-story-dancers.jpg`} revealSrc={cafe} alt="Traditional Rwandan dancers leaping in a village courtyard" />
+              <figcaption><span>03 / LIVING HERITAGE</span><strong>Rhythm passed from hand to hand.</strong></figcaption>
+            </figure>
+            <figure className="image-story-panel image-story-cafe">
+              <ImageStoryPhoto src={cafe} revealSrc={`${storyPath}image-story-baskets.jpg`} alt="Migano Café on a lively Musanze street" />
+              <figcaption><span>04 / A PLACE TO PAUSE</span><strong>Good coffee. No hurry.</strong></figcaption>
+            </figure>
+            <figure className="image-story-panel image-story-baskets">
+              <ImageStoryPhoto src={`${storyPath}image-story-baskets.jpg`} revealSrc={`${storyPath}image-story-night.jpg`} alt="Colorful woven baskets displayed on shelves in Musanze" />
+              <figcaption><span>05 / MADE BY HAND</span><strong>Carry a little of the north.</strong></figcaption>
+            </figure>
+          </div>
+          <div className="image-story-progress" aria-hidden="true"><span /></div>
+        </div>
+      </section>
+
       <section className="local-section" id="local-guide">
         <div className="local-heading">
           <div><span className="eyebrow">THE CITY BEYOND THE GORILLAS</span><h2>Find your Musanze.</h2></div>
           <p>Volcanoes. City life. Food. Schools. Neighbourhoods. Local experiences. Start with what brought you here; find everything else along the way.</p>
         </div>
         <div className="destination-list">
-          <a href={links.things} data-testid="link-destination-volcanoes"><span>01</span><div><small>OUTDOORS & EXPERIENCES</small><strong>Volcano country</strong><p>Volcanoes · hikes · caves</p></div><img src={volcano} alt="Green ridges beneath a cloud-wrapped volcano near Musanze" /><ArrowRight aria-hidden="true" /></a>
-          <a href={links.shopping} data-testid="link-destination-city"><span>02</span><div><small>MARKETS & EVERYDAY LIFE</small><strong>City life</strong><p>Markets · shops · city streets</p></div><img src={centralMall} alt="Central shopping district and street life in Musanze" /><ArrowRight aria-hidden="true" /></a>
-          <a href={links.eat} data-testid="link-destination-food"><span>03</span><div><small>RESTAURANTS & CAFÉS</small><strong>Eat & meet</strong><p>Restaurants · cafés · evenings</p></div><img src={cafe} alt="Migano café on a busy Musanze street" /><ArrowRight aria-hidden="true" /></a>
-          <a href={links.stay} data-testid="link-destination-stays"><span>04</span><div><small>HOTELS & GUESTHOUSES</small><strong>Stay a while</strong><p>Places to stay in and around town</p></div><img src={homeProperty} alt="A quiet guesthouse set among greenery near Musanze" /><ArrowRight aria-hidden="true" /></a>
+          <a id="destination-volcanoes" href={links.things} data-testid="link-destination-volcanoes"><span>01</span><div><small>OUTDOORS & EXPERIENCES</small><strong>Volcano country</strong><p>Volcanoes · hikes · caves</p></div><img src={volcano} alt="Green ridges beneath a cloud-wrapped volcano near Musanze" /><ArrowRight aria-hidden="true" /></a>
+          <a id="destination-city" href={links.shopping} data-testid="link-destination-city"><span>02</span><div><small>MARKETS & EVERYDAY LIFE</small><strong>City life</strong><p>Markets · shops · city streets</p></div><img src={centralMall} alt="Central shopping district and street life in Musanze" /><ArrowRight aria-hidden="true" /></a>
+          <a id="destination-food" href={links.eat} data-testid="link-destination-food"><span>03</span><div><small>RESTAURANTS & CAFÉS</small><strong>Eat & meet</strong><p>Restaurants · cafés · evenings</p></div><img src={cafe} alt="Migano café on a busy Musanze street" /><ArrowRight aria-hidden="true" /></a>
+          <a id="destination-stays" href={links.stay} data-testid="link-destination-stays"><span>04</span><div><small>HOTELS & GUESTHOUSES</small><strong>Stay a while</strong><p>Places to stay in and around town</p></div><img src={homeProperty} alt="A quiet guesthouse set among greenery near Musanze" /><ArrowRight aria-hidden="true" /></a>
         </div>
       </section>
 
-      <section className="stay-collection" aria-labelledby="stay-collection-title">
+      <section className="stay-collection" id="stay-collection" aria-labelledby="stay-collection-title">
         <div className="stay-collection-heading">
           <div><span className="eyebrow">A PLACE TO LAND</span><h2 id="stay-collection-title">Stay close<br />to what moves you.</h2></div>
           <div><p>Start with a feel for the options around town. The accommodation guide has the practical details to help you choose.</p><a href={links.stay} data-testid="link-stays-collection">See all places to stay <ArrowRight size={16} aria-hidden="true" /></a></div>
@@ -385,13 +439,13 @@ function App() {
         </div>
       </section>
 
-      <section className="culture-band">
+      <section className="culture-band" id="culture">
         <div className="culture-band-image"><img src="/story/local-dance.jpg" alt="Rwandan dancers perform outdoors at a cultural site" loading="lazy" /></div>
         <div className="culture-band-copy"><span className="eyebrow">LIVING HERITAGE</span><h2>A place is more<br />than its view.</h2><p>Traditional architecture, dance, daily life and cultural experiences from Rwanda’s northern region. Discover the people and stories that give Musanze its character.</p><a href={links.culture} data-testid="link-discover-culture">Discover History & Culture <ArrowRight size={16} aria-hidden="true" /></a></div>
         <span className="culture-coordinate">1°29′ S &nbsp; 29°38′ E</span>
       </section>
 
-      <section className="services-section">
+      <section className="services-section" id="services">
         <div className="services-intro"><span className="eyebrow">USEFUL LOCAL GUIDE</span><h2>Live, learn<br />and get around.</h2><p>Useful local information for visitors, residents and anyone finding their bearings in Musanze.</p><a href={links.move} data-testid="link-getting-around">Getting around <ArrowRight size={16} aria-hidden="true" /></a></div>
         <div className="service-lines">
           {[
@@ -405,7 +459,7 @@ function App() {
         </div>
       </section>
 
-      <section className="souvenir-band">
+      <section className="souvenir-band" id="souvenirs">
         <div><span className="eyebrow">MUSANZEGUIDE24/7 SOUVENIRS</span><h2>Take Musanze<br />home.</h2><p>Explore our growing collection of Musanze-inspired keepsakes and branded items.</p><a href={links.souvenirs} data-testid="link-explore-souvenirs">Explore souvenirs <ArrowRight size={16} aria-hidden="true" /></a></div>
         <img src={logo} alt="MusanzeGuide24/7 official brand artwork" />
       </section>
@@ -424,17 +478,16 @@ function App() {
       <footer className="footer" id="footer">
         <div className="footer-main">
           <div className="footer-brand">
-            <a href="/" aria-label="MusanzeGuide24/7 home" data-testid="link-footer-home"><img src={logo} alt="MusanzeGuide24/7" /></a>
+            <a href="#journey" aria-label="MusanzeGuide24/7 home" data-testid="link-footer-home"><img src={logo} alt="MusanzeGuide24/7" /></a>
             <span>EXPLORE · STAY · DISCOVER · CONNECT</span>
             <p>A practical independent guide to Musanze, Rwanda — places, people, businesses and visitor experiences.</p>
           </div>
           <div className="footer-links"><span>FIND YOUR WAY</span><div>{[['Things to do', links.things], ['Eat & Drink', links.eat], ['Places to stay', links.stay], ['Musanze Night View', links.night], ['Local life', links.shopping], ['Education', links.education], ['Souvenirs', links.souvenirs], ['Health', links.health], ['History & Culture', links.culture], ['Property', links.property], ['Getting Around', links.move]].map(([title, href]) => <a key={title} href={href} data-testid={`link-footer-${String(title).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>{title}</a>)}</div></div>
-          <div className="qr-block"><img src={qrCode} alt="QR code linking to musanzeguide.com" /><span>SCAN TO EXPLORE</span><a href="https://musanzeguide.com/" data-testid="link-footer-site">musanzeguide.com</a></div>
+            <div className="qr-block"><span className="qr-monogram" aria-hidden="true">MG</span><span>LOCAL KNOW-HOW</span><a href="#local-guide" data-testid="link-footer-local-guide">Explore the local guide</a></div>
         </div>
         <div className="footer-bottom"><span>© 2026 MusanzeGuide24/7 · Rwanda · All rights reserved.</span><span>Your Gateway to Musanze and Beyond</span><a href="#journey" data-testid="link-back-to-top">Back to the beginning ↑</a></div>
       </footer>
     </main>
-    <div ref={cursorLensRef} className="cursor-lens" aria-hidden="true" />
     </>
   );
 }
