@@ -39,6 +39,21 @@ const sliderItems = [
   { eyebrow: '05 / AFTER SUNSET', title: 'Night view', text: 'City lights, familiar landmarks and volcano silhouettes.', image: nightClock, href: links.night, alt: 'Illuminated clock tower on a Musanze street at night' },
 ];
 
+const storyPath = '/story/';
+const stays = [
+  { name: 'Fatima Hotel', image: `${storyPath}hotel-fatima.jpg`, alt: 'Fatima Hotel on a Musanze street' },
+  { name: 'Home Inn', image: `${storyPath}hotel-home-in.jpg`, alt: 'Home Inn guesthouse in Musanze' },
+  { name: 'Hotel Muhabura', image: `${storyPath}hotel-muhabura.jpg`, alt: 'Hotel Muhabura with its garden frontage' },
+  { name: 'Virunga Hotel', image: `${storyPath}hotel-virunga.jpg`, alt: 'Virunga Hotel among the shops in central Musanze' },
+];
+const keepsakes = [
+  { name: 'Woven baskets', image: `${storyPath}souvenir-baskets.jpg`, alt: 'Colorful woven baskets arranged on shelves' },
+  { name: 'Small forms, careful hands', image: `${storyPath}souvenir-gourds.jpg`, alt: 'Handwoven lidded baskets in a range of sizes' },
+  { name: 'Beads and color', image: `${storyPath}souvenir-jewelry.jpg`, alt: 'Rows of colorful beaded jewelry' },
+  { name: 'A market-side shelf', image: `${storyPath}souvenir-shelf.jpg`, alt: 'A roadside stall with woven pieces, carvings and keepsakes' },
+  { name: 'Textiles and prints', image: `${storyPath}souvenir-textiles.jpg`, alt: 'Textiles and printed shirts at a local craft shop' },
+];
+
 const clamp = (n: number, min = 0, max = 1) => Math.min(max, Math.max(min, n));
 const smooth = (n: number) => { const x = clamp(n); return x * x * (3 - 2 * x); };
 const between = (value: number, start: number, end: number) => smooth((value - start) / (end - start));
@@ -78,17 +93,21 @@ function App() {
       }
       const progress = distance ? clamp(scroll / distance) : 0;
       const introExit = between(scroll, 80, 650);
-      const cityReveal = between(scroll, 650, 1150);
-      const nightReveal = between(scroll, 1550, 2100);
-      const cultureReveal = between(scroll, 2650, 3200);
-      const sliderReveal = between(scroll, 3650, 4250);
-      const split = Math.pow(between(scroll, 880, 1500), 1.4);
+      const cityReveal = between(scroll, 720, 1320);
+      const nightReveal = between(scroll, 1840, 2400);
+      const cultureReveal = between(scroll, 2860, 3410);
+      const stayReveal = between(scroll, 3890, 4470);
+      const makerReveal = between(scroll, 4900, 5480);
+      const sliderReveal = between(scroll, 5900, 6500);
+      const split = Math.pow(between(scroll, 1040, 1660), 1.35);
       const set = (name: string, value: string | number) => root.style.setProperty(name, String(value));
       set('--scroll', progress);
       set('--intro-exit', introExit);
       set('--city-reveal', cityReveal);
       set('--night-reveal', nightReveal);
       set('--culture-reveal', cultureReveal);
+      set('--stay-reveal', stayReveal);
+      set('--maker-reveal', makerReveal);
       set('--slider-reveal', sliderReveal);
       set('--split', split);
       set('--hero-scale', 1 + progress * 0.22);
@@ -103,16 +122,20 @@ function App() {
       set('--city-clip-top', `${split * 7}%`);
       set('--city-clip-side', `${split * 2}%`);
       set('--city-clip-bottom', `${split * 4}%`);
-      set('--night-scale', 1.08 - nightReveal * 0.08);
-      set('--culture-scale', 1.1 - cultureReveal * 0.1);
+      set('--night-scale', 1.16 - nightReveal * 0.16 + progress * .04);
+      set('--culture-scale', 1.18 - cultureReveal * 0.18);
+      set('--stay-scale', 1.15 - stayReveal * .15);
+      set('--maker-scale', 1.19 - makerReveal * .19);
       set('--title-y', `${introExit * -160}px`);
       set('--title-scale', 1 - introExit * 0.07);
       set('--intro-copy-y', `${introExit * 80}px`);
       set('--story-shift', `${(1 - cityReveal) * 42}px`);
       set('--city-story-opacity', cityReveal * (1 - nightReveal));
       set('--night-story-opacity', nightReveal * (1 - cultureReveal));
-      set('--culture-story-opacity', cultureReveal * (1 - sliderReveal));
-      set('--track-shift', `${(1 - sliderReveal) * 100}vw`);
+      set('--culture-story-opacity', cultureReveal * (1 - stayReveal));
+      set('--stay-story-opacity', stayReveal * (1 - makerReveal));
+      set('--maker-story-opacity', makerReveal * (1 - sliderReveal));
+      set('--track-shift', `${(1 - sliderReveal) * 110}vw`);
       set('--ridge-back-y', `${progress * -5}vh`);
       set('--ridge-front-y', `${progress * -3}vh`);
       set('--frame-left-x', `${-split * 42}vw`);
@@ -199,6 +222,9 @@ function App() {
             <div className="scene city-scene" />
             <div className="scene night-scene" />
             <div className="scene culture-scene" />
+            <div className="scene stay-scene" />
+            <div className="scene maker-scene" />
+            <div className="scene inset-scene" />
             <div className="horizon-glow" />
             <div className="ridge ridge-back" />
             <div className="ridge ridge-front" />
@@ -244,12 +270,24 @@ function App() {
           </section>
           <section className="story-panel culture-story" aria-label="Culture and local life">
             <span className="story-number">04 / LIVING HERITAGE</span>
-            <h2>Rooted in place.<br /><em>Open to the world.</em></h2>
-            <p>Traditional architecture, dance, daily life and cultural experiences from Rwanda’s northern region.</p>
+            <h2>A city with<br /><em>its own rhythm.</em></h2>
+            <p>Meet the living heritage of the north through local culture, dance and everyday life—not only the view from the road.</p>
             <a href={links.culture} className="light-link" data-testid="link-culture">History & Culture <ArrowRight size={16} aria-hidden="true" /></a>
           </section>
+          <section className="story-panel stay-story" aria-label="Places to stay in Musanze">
+            <span className="story-number">05 / MAKE A BASE</span>
+            <h2>Wake up<br /><em>near the story.</em></h2>
+            <p>From the town centre to a quieter garden, choose a stay that makes room for an early start and an unhurried evening.</p>
+            <a href={links.stay} className="light-link" data-testid="link-stays-story">Browse places to stay <ArrowRight size={16} aria-hidden="true" /></a>
+          </section>
+          <section className="story-panel maker-story" aria-label="Local craft and keepsakes">
+            <span className="story-number">06 / MADE TO BE KEPT</span>
+            <h2>Carry a little<br /><em>of the north.</em></h2>
+            <p>Woven forms, beads, textiles and keepsakes bring the textures of a visit back into view.</p>
+            <a href={links.souvenirs} className="light-link" data-testid="link-keepsakes-story">Explore local souvenirs <ArrowRight size={16} aria-hidden="true" /></a>
+          </section>
           <div className="sights-area" aria-label="Explore the region">
-            <div className="sights-heading"><span>05 / KEEP EXPLORING</span><span>SCROLL OR CHOOSE A PLACE</span></div>
+            <div className="sights-heading"><span>07 / KEEP EXPLORING</span><span>SCROLL OR CHOOSE A PLACE</span></div>
             <div className="sights-track" ref={trackRef} onScroll={syncSliderToSwipe} role="region" aria-roledescription="carousel" aria-label="Musanze highlights carousel">
               {sliderItems.map((item, index) => <a href={item.href} className={`sight-card ${activeSight === index ? 'is-active' : ''}`} data-sight={index} data-testid={`slide-highlight-${index + 1}`} key={item.title} role="group" aria-roledescription="slide" aria-label={`${index + 1} of ${sliderItems.length}: ${item.title}. ${item.text}`} onFocus={() => selectSight(index)}>
                 <img src={item.image} alt={item.alt} />
@@ -289,8 +327,22 @@ function App() {
         </div>
       </section>
 
+      <section className="stay-collection" aria-labelledby="stay-collection-title">
+        <div className="stay-collection-heading">
+          <div><span className="eyebrow">A PLACE TO LAND</span><h2 id="stay-collection-title">Stay close<br />to what moves you.</h2></div>
+          <div><p>Start with a feel for the options around town. The accommodation guide has the practical details to help you choose.</p><a href={links.stay} data-testid="link-stays-collection">See all places to stay <ArrowRight size={16} aria-hidden="true" /></a></div>
+        </div>
+        <div className="stay-gallery">
+          {stays.map((stay, index) => <a className={`stay-card stay-card-${index + 1}`} key={stay.name} href={links.stay} data-testid={`link-stay-photo-${index + 1}`}>
+            <img src={stay.image} alt={stay.alt} loading="lazy" />
+            <span className="stay-card-count">0{index + 1} / MUSANZE</span>
+            <span className="stay-card-name">{stay.name}<ArrowRight size={17} aria-hidden="true" /></span>
+          </a>)}
+        </div>
+      </section>
+
       <section className="culture-band">
-        <div className="culture-band-image"><img src={downtownFour} alt="Everyday shops, signs and street life in Musanze" /></div>
+        <div className="culture-band-image"><img src="/story/local-dance.jpg" alt="Rwandan dancers perform outdoors at a cultural site" loading="lazy" /></div>
         <div className="culture-band-copy"><span className="eyebrow">LIVING HERITAGE</span><h2>A place is more<br />than its view.</h2><p>Traditional architecture, dance, daily life and cultural experiences from Rwanda’s northern region. Discover the people and stories that give Musanze its character.</p><a href={links.culture} data-testid="link-discover-culture">Discover History & Culture <ArrowRight size={16} aria-hidden="true" /></a></div>
         <span className="culture-coordinate">1°29′ S &nbsp; 29°38′ E</span>
       </section>
@@ -312,6 +364,17 @@ function App() {
       <section className="souvenir-band">
         <div><span className="eyebrow">MUSANZEGUIDE24/7 SOUVENIRS</span><h2>Take Musanze<br />home.</h2><p>Explore our growing collection of Musanze-inspired keepsakes and branded items.</p><a href={links.souvenirs} data-testid="link-explore-souvenirs">Explore souvenirs <ArrowRight size={16} aria-hidden="true" /></a></div>
         <img src={logo} alt="MusanzeGuide24/7 official brand artwork" />
+      </section>
+
+      <section className="craft-notebook" aria-labelledby="craft-title">
+        <div className="craft-heading"><div><span className="eyebrow">A CLOSER LOOK · LOCAL CRAFT</span><h2 id="craft-title">Color, weave<br />and memory.</h2></div><p>Small details reward a slower look: a basket’s changing pattern, beads catching the light, the busy rhythm of a shopfront. Explore the souvenirs guide for more.</p></div>
+        <div className="craft-gallery">
+          {keepsakes.map((item, index) => <a className={`craft-tile craft-tile-${index + 1}`} key={item.name} href={links.souvenirs} data-testid={`link-craft-detail-${index + 1}`}>
+            <img src={item.image} alt={item.alt} loading="lazy" />
+            <span><i>0{index + 1}</i>{item.name}<ArrowRight size={16} aria-hidden="true" /></span>
+          </a>)}
+        </div>
+        <a className="craft-more" href={links.souvenirs} data-testid="link-craft-guide">Find souvenirs in the local guide <ArrowRight size={16} aria-hidden="true" /></a>
       </section>
 
       <footer className="footer" id="footer">

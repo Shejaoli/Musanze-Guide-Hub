@@ -1,15 +1,18 @@
-# [Project name]
+# MusanzeGuide24/7
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+An independent guide to Musanze, Rwanda, helping visitors and residents discover places, local services, food, stays, culture, and experiences.
 
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/musanze-guide run dev` — run the MusanzeGuide website (port supplied by its artifact workflow)
+- `pnpm --filter @workspace/musanze-guide run typecheck` — typecheck the website
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- The API server requires `DATABASE_URL` — a Postgres connection string. The website does not require that value to run.
+- The MusanzeGuide website is a static Vite app; its managed workflow supplies `PORT` and `BASE_PATH`.
 
 ## Stack
 
@@ -22,7 +25,9 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/musanze-guide/src/App.tsx` — homepage and scroll-story interactions
+- `artifacts/musanze-guide/src/index.css` — website theme, layout, and motion
+- `artifacts/musanze-guide/public/story/` — optimized local hotel, culture, and souvenir photos
 
 ## Architecture decisions
 
