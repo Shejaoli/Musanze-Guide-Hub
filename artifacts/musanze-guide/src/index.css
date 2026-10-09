@@ -75,6 +75,8 @@
   --perspective-x: 50%;
   --perspective-y: 45%;
   --city-base-opacity: 0;
+  --city-frame-opacity: 0;
+  --stay-inset-opacity: 0;
   --city-scale: 1;
   --title-y: 0px;
   --story-shift: 0px;
@@ -152,14 +154,14 @@
 .maker-scene { z-index:5;opacity:var(--maker-reveal);background-image:url('/story/souvenir-shelf.jpg');background-position:center 56%;transform:translate3d(var(--scene-x),calc(var(--scene-y) * -1),230px) scale(var(--maker-scale));filter:saturate(.82) brightness(.76); }
 .maker-scene::before { inset:10% auto auto 7%;width:33%;height:51%;background-image:url('/story/souvenir-jewelry.jpg');transform:translate3d(calc(var(--parallax-city-x) * -1.5),var(--parallax-city-y),130px) rotateY(6deg);clip-path:polygon(0 2%,100% 0,91% 100%,3% 94%); }
 .maker-scene::after { inset:auto 8% 11% auto;width:36%;height:46%;background-image:url('/story/souvenir-gourds.jpg');transform:translate3d(var(--parallax-city-x),calc(var(--parallax-city-y) * -1.6),175px) rotateY(-7deg);clip-path:polygon(9% 0,100% 6%,95% 100%,0 92%); }
-.inset-scene { z-index:6;inset:auto 31% 11% auto;width:22%;height:30%;background-image:url('/story/hotel-virunga.jpg');opacity:var(--stay-reveal);transform:translate3d(calc(var(--parallax-city-x) * -1.7),var(--parallax-city-y),250px) rotateY(-6deg);clip-path:polygon(0 5%,100% 0,94% 95%,6% 100%);box-shadow:0 20px 60px rgba(9,17,13,.22); }
+.inset-scene { z-index:6;inset:auto 31% 11% auto;width:22%;height:30%;background-image:url('/story/hotel-virunga.jpg');opacity:var(--stay-inset-opacity);transform:translate3d(calc(var(--parallax-city-x) * -1.7),var(--parallax-city-y),250px) rotateY(-6deg);clip-path:polygon(0 5%,100% 0,94% 95%,6% 100%);box-shadow:0 20px 60px rgba(9,17,13,.22); }
 .horizon-glow { position:absolute; z-index:4; inset:0; background:linear-gradient(180deg,rgba(11,23,24,.25),transparent 25%,rgba(14,25,22,.05) 47%,rgba(9,19,16,.75)); pointer-events:none; }
 .ridge { position:absolute; z-index:4; pointer-events:none; background:linear-gradient(135deg,rgba(15,42,37,.68),rgba(22,55,42,.88)); filter:drop-shadow(0 -18px 40px rgba(38,61,39,.13)); }
 .ridge-back { width:120vw;height:48vh;left:-9vw;bottom:-30vh;opacity:.52;transform:translate3d(var(--scene-x),var(--ridge-back-y),265px) rotate(-5deg);clip-path:polygon(0 42%,8% 32%,18% 38%,31% 8%,39% 22%,48% 17%,57% 35%,69% 12%,79% 27%,89% 6%,100% 23%,100% 100%,0 100%);}
 .ridge-front { width:130vw;height:35vh;left:-12vw;bottom:-26vh;background:linear-gradient(135deg,rgba(20,50,37,.92),rgba(27,65,45,.96));transform:translate3d(var(--scene-x),var(--ridge-front-y),315px) rotate(3deg);clip-path:polygon(0 45%,11% 30%,24% 44%,39% 16%,53% 35%,65% 24%,75% 41%,90% 13%,100% 30%,100% 100%,0 100%);}
 .scene-frame { display:block; position:absolute;inset:-5%;z-index:5;background-position:center;background-size:cover;transform-style:preserve-3d;will-change:transform,opacity;pointer-events:none; }
-.frame-left { background-image:var(--city-image);clip-path:inset(0 50% 0 0);transform:translate3d(calc(-50% + var(--frame-left-x)),var(--frame-y),205px) scale(var(--frame-scale));opacity:var(--city-reveal); }
-.frame-right { background-image:var(--city-image);clip-path:inset(0 0 0 50%);transform:translate3d(calc(-50% + var(--frame-right-x)),var(--frame-y),205px) scale(var(--frame-scale));opacity:var(--city-reveal); }
+.frame-left { background-image:var(--city-image);clip-path:inset(0 50% 0 0);transform:translate3d(calc(-50% + var(--frame-left-x)),var(--frame-y),205px) scale(var(--frame-scale));opacity:var(--city-frame-opacity); }
+.frame-right { background-image:var(--city-image);clip-path:inset(0 0 0 50%);transform:translate3d(calc(-50% + var(--frame-right-x)),var(--frame-y),205px) scale(var(--frame-scale));opacity:var(--city-frame-opacity); }
 .grain { position:fixed;z-index:18;inset:0;pointer-events:none;opacity:.13;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.2'/%3E%3C/svg%3E");mix-blend-mode:soft-light;}
 .shade { position:absolute;z-index:8;inset:0;background:linear-gradient(180deg,rgba(19,37,30,.43),transparent 27%,rgba(17,28,22,.04) 52%,rgba(9,17,15,.68));pointer-events:none; }
 .header { position:absolute;z-index:15;top:0;left:0;right:0;height:88px;padding:0 clamp(22px,5vw,76px);display:grid;grid-template-columns:minmax(180px,1fr) auto minmax(180px,1fr);align-items:center;gap:30px;border-bottom:1px solid rgba(255,255,255,.18); }

@@ -108,6 +108,8 @@ function App() {
       set('--culture-reveal', cultureReveal);
       set('--stay-reveal', stayReveal);
       set('--maker-reveal', makerReveal);
+      set('--city-frame-opacity', cityReveal * (1 - nightReveal));
+      set('--stay-inset-opacity', stayReveal * (1 - makerReveal));
       set('--slider-reveal', sliderReveal);
       set('--split', split);
       set('--hero-scale', 1 + progress * 0.22);
